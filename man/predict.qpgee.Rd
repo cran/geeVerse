@@ -26,15 +26,15 @@ it returns predictions using the original data the model was fitted on. If `newd
 }
 \examples{
 # Example usage:
-sim_data <- generateData(n_sub = 100, n_obs = rep(10, 100),  p = 100,
-                         beta0 = rep(1,7), rho = 0.6, type = "ar",
+sim_data <- generateData(nsub = 100, nobs = rep(10, 100),  p = 100,
+                         beta0 = c(rep(1,7),rep(0,93)), rho = 0.6, correlation = "AR1",
                           dis = "normal", ka = 1)
 
 X=sim_data$X
 y=sim_data$y
 
 #fit qpgee
-qpgee.fit = qpgee(X,y,tau=0.5,nk=rep(10, 100))
+qpgee.fit = qpgee(X,y,tau=0.5,nobs=rep(10, 100),lambda = 0.1)
 predict(qpgee.fit)
 
 }
