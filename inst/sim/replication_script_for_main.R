@@ -1,19 +1,17 @@
-# This replication script includes all demonstration codes and simulation codes
+# This replication script includes all demonstration codes
 # for manuscript `geeVerse: Ultra-high Dimensional Heterogeneous Data Analysis
-# with Generalized Estimating Equations` submitted to the Journal of Statistical
-# Software.The paper uses 100 replications. The results in the Monte Carlo
-# simulation study may be slightly different due to randomness.
+# with Generalized Estimating Equations`.
 
 
 # Before you run the script, make sure you have the geeVerse package installed.
 # It can be installed from a source package provided or directly from CRAN.
 library(geeVerse)
 library(tictoc)
-
 tic()
 # Section 4.1 -------------------------------------------------------------
 
 ## Example 1 Demonstration Script-----------------------------------------
+set.seed(2024)
 nsub = 100
 sim_data = generateData(nsub= nsub, nobs = rep(10, nsub),  p = 200,
        beta0 = c(rep(1,7),rep(0,193)), rho = 0.6, correlation = "exchangeable")
@@ -32,6 +30,7 @@ res_list = NULL # initialize a list to store all the fitted models
 for (m in 1:n_sim){
   #generate data
   nsub = 100
+  set.seed(2024)
   sim_data = generateData(nsub= nsub, nobs = rep(10, nsub),  p = 200,
         beta0 = c(rep(1,7),rep(0,193)), rho = 0.6, correlation = "exchangeable")
   y = sim_data$y
@@ -49,10 +48,10 @@ for (m in 1:n_sim){
 }
 #Report results for independence working correlation structure with tau = 0.5 from Table 2;
 #Note: users can update parameters for other working correlation structures and tau results
-compile_result(res_list[["independence"]][[as.character(0.5)]],
+compile_result(res_list[["independence"]][[as.character(0.9)]],
                beta0= c(rep(1,7),rep(0,193)))
-toc()
-tic()
+
+
 ## Example 2 Demonstration Script-----------------------------------------
 qpgee(x, y , nobs = rep(1,1000), correlation = "independence", tau = 0.9,
       max_it = 100, method = "HBIC")
@@ -64,6 +63,7 @@ res_list = NULL # initialize a list to store all the fitted models
 for (m in 1:n_sim){
   #generate data
   nsub = 100
+  set.seed(2024)
   sim_data = generateData(nsub= nsub, nobs = rep(10, nsub),  p = 200,
                           beta0 = c(rep(1,7),rep(0,193)), rho = 0.6, correlation = "indepedence")
   y = sim_data$y
@@ -83,8 +83,8 @@ for (m in 1:n_sim){
 #Note: users can update parameters for other working correlation structures and tau results
 compile_result(res_list[["independence"]][[as.character(0.5)]],
                beta0= c(rep(1,7),rep(0,193)))
-toc()
-tic()
+
+
 ## Example 3 Demonstration Script-----------------------------------------
 #generate imbalanced data
 nobs = c(rep(10,nsub/2),rep(5,nsub/2))
@@ -103,6 +103,7 @@ res_list = NULL # initialize a list to store all the fitted models
 for (m in 1:n_sim){
   #generate data
   nsub = 100
+  set.seed(2024)
   nobs = c(rep(10,nsub/2),rep(5,nsub/2))
   sim_data = generateData(nsub= 100, nobs = nobs, p = 200,
                           beta0 = c(rep(1,7),rep(0,193)), rho = 0.6, correlation = "exchangeable")
@@ -123,86 +124,22 @@ for (m in 1:n_sim){
 #Note: users can update parameters for other working correlation structures and tau results
 compile_result(res_list[["independence"]][[as.character(0.5)]],
                beta0= c(rep(1,7),rep(0,193)))
-toc()
-tic()
-# Section 4.2 -------------------------------------------------------------
-# Monte Carlo Simulation Study and Screening Option
-# This subsection includes codes for table 5 and table 6.
-# Note we use 2 replications for computational efficiency instead of 100 replications
-# as in the paper, so our results will likely be different than the 100 replication simulation based tables in the paper.
 
-## 4.2 Demonstration Script------------------------------------------------
-nsub = 100
+## Demonstration Script for example 4 ---------------------------
+set.seed(2024)
 sim_data = generateData(nsub = nsub, nobs = rep(10, nsub), p = 1000,
                         beta0 = c(rep(1,7),rep(0,993)), rho = 0.6, correlation = "exchangeable")
 y = sim_data$y
 x = sim_data$X
+x_sis_ind = SIS::SIS(x,y,nsis=200)$sis.ix0
+xsis = x[,x_sis_ind]
+QPGEE_results_highdim = qpgee(xsis, y, nobs=rep(10, nsub),
+                              correlation = "exchangeable", tau=0.9, max_it=100, method = "HBIC", ncore = 10)
 
-xsis = x[,SIS::SIS(x,y,nsis=200)$sis.ix0]
+QPGEE_results_highdim$beta <- replace(vector("numeric", 1000), x_sis_ind, QPGEE_results_highdim$beta)
+compile_result(QPGEE_results_highdim,beta0= c(rep(1,7),rep(0,993)))
 
-qpgee(xsis, y, nobs=rep(10, nsub), correlation  = "exchangeable",
-      tau=0.9, max_it=100, method = "HBIC", ncore = 10)
 
-## Monte Carlo Simulation Script for Table 5 ----------------------------------
-n_sim = 1 # number of simulation replications
-res_list = NULL # initialize a list to store all the fitted models
-# start simulation
-for (m in 1:n_sim){
-  #generate data
-  nsub = 100
-  sim_data = generateData(nsub= nsub, nobs = rep(10, nsub),  p = 200,
-                          beta0 = c(rep(1,7),rep(0,193)), rho = 0.6, correlation = "exchangeable")
-  y = sim_data$y
-  x = sim_data$X
-  # fit qpgee on different correlation structure for different tau
-  correlation_vec = c("independence","exchangeable","AR1")
-  tau_vec = c(0.1,0.5,0.9)
-  for (correlation in correlation_vec){
-    for(tau in tau_vec){
-      QPGEE_results = qpgee(x, y, nobs=rep(10, nsub), correlation = correlation,
-                            tau = tau, max_it=100, method = "HBIC",ncore = 10)
-      res_list[[correlation]][[as.character(tau)]][[m]] = QPGEE_results
-    }
-  }
-}
-#Report results for independence working correlation structure with tau = 0.5 from Table 5;
-#Note: users can update parameters for other working correlation structures
-compile_result(res_list[["independence"]][[as.character(0.5)]],
-               beta0= c(rep(1,7),rep(0,193)))
-
-## Monte Carlo Simulation Script for Table 6 ---------------------------
-n_sim = 1 # number of simulation replications
-res_list = NULL # initialize a list to store all the fitted models
-# start simulation
-for (m in 1:n_sim){
-  #generate data
-  nsub = 100
-  sim_data = generateData(nsub = nsub, nobs = rep(10, nsub), p = 1000,
-                          beta0 = c(rep(1,7),rep(0,993)), rho = 0.6, correlation = "exchangeable")
-  y = sim_data$y
-  x = sim_data$X
-  # fit qpgee on different correlation structure for different tau
-  correlation_vec = c("independence","exchangeable","AR1")
-  tau_vec = c(0.1,0.5,0.9)
-  for (correlation in correlation_vec){
-    for(tau in tau_vec){
-      x_sis_ind = SIS::SIS(x,y,nsis=200)$sis.ix0
-      xsis = x[,x_sis_ind]
-      QPGEE_results = qpgee(xsis, y, nobs=rep(10, nsub), correlation = correlation,
-                            tau = tau, max_it=100, method = "HBIC",ncore = 10)
-      full_beta = rep(0,1000)
-      full_beta[x_sis_ind] = QPGEE_results$beta
-      QPGEE_results$beta = full_beta
-      res_list[[correlation]][[as.character(tau)]][[m]] = QPGEE_results
-    }
-  }
-}
-#Report results for independence working correlation structure with tau = 0.5 from Table 6;
-#Note: users can update parameters for other working correlation structures
-compile_result(res_list[["independence"]][[as.character(0.5)]],
-               beta0= c(rep(1,7),rep(0,993)))
-toc()
-tic()
 # Section 4.3 -------------------------------------------------------------
 ## Computational Time Comparison Script, Table 7 --------------------------
 
@@ -252,100 +189,26 @@ report_sum <- function(x){
 report_sum(qpgee_tvec)
 report_sum(pgee_own_tvec)
 report_sum(pgee_pkg_tvec)
-toc()
-tic()
+
+
 # Section 5.1 -------------------------------------------------------------
-## Monte Carlo Simulation Script for Table 8 ---------------------------
 
 # load data
 data("simuGene")
+set.seed(2024)
 sim_data <- generateData(nsub = 1000, nobs = rep(5,1000), p = 50,
                          beta0 = c(rep(1,9),rep(0,41)), rho = 0.6, correlation = "exchangeable",
                          ka = 0.5, SNPs = simuGene[,1:25])
 y = sim_data$y
 x = sim_data$X
 
-PQGEE_results_median <- qpgee(x, y, nobs=rep(5,1000), correlation="independence",
-                              tau=0.5, intercept= TRUE, method="HBIC", cutoff=10^-4)
-
-# This subsection includes codes for Table 8, p = 50
-n_sim = 1 # number of simulation replications
-res_list = NULL # initialize a list to store all the fitted models
-# start simulation
-for (m in 1:n_sim){
-  #generate data
-  nsub = 1000
-  nobs = rep(5,1000)
-  p = 50
-  sim_data <- generateData(nsub = nsub, nobs = nobs, p = p,
-                           beta0 = c(rep(1,9),rep(0,41)), rho = 0.6, correlation = "exchangeable",
-                           ka = 0.5, SNPs = simuGene[,1:25])
-  y = sim_data$y
-  x = sim_data$X
-  #for PGEE, reorganize the data
-  id = rep(1:nsub, times = nobs)
-  data = data.frame(x,y,id)
-  # fit qpgee on different correlation structure for different tau
-  correlation_vec = c("independence","exchangeable","AR1")
-  #correlation_vec = c("exchangeable","AR1")
-  for (correlation in correlation_vec){
-    # qpgee tau = 0.5
-    tau = 0.5
-    QPGEE_results = qpgee(x, y, nobs=nobs, correlation = correlation,
-                          tau = tau, max_it=100, method = "HBIC",ncore = 18)
-    res_list[[correlation]][["qpgee"]][[m]] = QPGEE_results
-  }
-}
-#Report results for independence working correlation structure with tau = 0.5 from Table 8;
-#Note: users can update parameters for other working correlation structures
-compile_result(res_list[["exchangeable"]][["qpgee"]],
+PQGEE_results_median <- qpgee(x, y, nobs=rep(5,1000), correlation="exchangeable",
+                              tau=0.5, intercept= FALSE, method="HBIC", cutoff=10^-4,ncore = 10)
+compile_result(PQGEE_results_median,
                beta0= c(rep(1,9),rep(0,41)))
-toc()
-tic()
-# This subsection includes codes for Table 8, p = 1000
-n_sim = 1 # number of simulation replications
-res_list = NULL # initialize a list to store all the fitted models
-# start simulation
-for (m in 1:n_sim){
-  #generate data
-  nsub = 1000
-  nobs = rep(5,1000)
-  p = 1000
-  sim_data <- generateData(nsub = nsub, nobs = nobs, p = p,
-                           beta0 = c(rep(1,9),rep(0,991)), rho = 0.6, correlation = "exchangeable",
-                           ka = 0.5, SNPs = simuGene)
-  y = sim_data$y
-  x = sim_data$X
 
-  #SIS
-  x_sis_ind = SIS::SIS(x,y,nsis=200)$sis.ix0
-  xsis = x[,x_sis_ind]
 
-  #for PGEE, reorganize the data
-  id = rep(1:nsub, times = nobs)
-  data = data.frame(xsis,y,id)
-  # fit qpgee on different correlation structure for different tau
-  correlation_vec = c("independence","exchangeable","AR1")
-  for (correlation in correlation_vec){
-    # fit qpgee with tau = 0.5
-    tau = 0.5
 
-    QPGEE_results = qpgee(xsis, y, nobs=nobs, correlation = correlation,
-                          tau = tau, max_it=100, method = "HBIC",ncore = 10)
-    # map screened beta back to full length
-    full_beta = rep(0,p)
-    full_beta[x_sis_ind] = QPGEE_results$beta
-    QPGEE_results$beta = full_beta
-    res_list[[correlation]][["qpgee"]][[m]] = QPGEE_results
-  }
-}
-#Report results for independence working correlation structure with tau = 0.5 from Table 8;
-#Note: users can update parameters for other working correlation structures
-compile_result(res_list[["exchangeable"]][["qpgee"]],
-               beta0= c(rep(1,9),rep(0,991)))
-
-toc()
-tic()
 # Section 5.2 -------------------------------------------------------------
 
 ## Gene Expression Example: Yeast Cell G1 ---------------------------------
@@ -375,6 +238,7 @@ myfit1 <- PGEE("y ~ . - id ", id = id, data = yeastG1,
 pgee_index <- which(abs(myfit1$coefficient) > 10^-3)
 predictors[pgee_index]
 
-toc()
+
 # Section 5.3 -------------------------------------------------------------
 # As CCI-779 data is not publicly available, we are not able to provide the script here.
+toc()

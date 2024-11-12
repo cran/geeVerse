@@ -4,14 +4,14 @@
 \alias{compile_result}
 \title{Compile Results from qpgee()}
 \usage{
-compile_result(qpgee_results, beta0, cutoff = 0.1)
+compile_result(qpgee_results, beta0, threshold = 10^-3)
 }
 \arguments{
 \item{qpgee_results}{A (list of) fitted qpgee model.}
 
 \item{beta0}{True beta used in true data generation process.}
 
-\item{cutoff}{Integer, the threshold to determine whether a esimated beta should
+\item{threshold}{Integer, the threshold to determine whether a esimated beta should
 be consider as 0.}
 }
 \value{

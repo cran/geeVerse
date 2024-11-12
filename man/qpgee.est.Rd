@@ -15,7 +15,7 @@ qpgee.est(
   betaint = NULL,
   f0 = NULL,
   max_it = 100,
-  cutoff = 10^-1
+  cutoff = 10^-4
 )
 }
 \arguments{
